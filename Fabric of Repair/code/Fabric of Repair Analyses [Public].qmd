@@ -40,7 +40,6 @@ df <- read_csv("Fabric of Repair/data/replication_swayable_2025.csv")
 ```
 
 ## Creating the Analytic Variables
-
 ```{r}
 #| label: dataset construction
 #| message: False
@@ -109,9 +108,7 @@ df_analysis <- df %>%
 
 df_analysis
 ```
-
 # Tables
-
 ## Table 1. Demographic Distribution of Study Population
 ```{r}
 #| label: table1
@@ -192,7 +189,6 @@ df_analysis %>%
   filter(rep_baseline_categorical == "Support") %>% 
   select(`Identity Group`,`Political Affiliation`,`Sample Size`,`Support (%)`) 
 ```
-  
 # Figures
 ## Figure 1. Baseline Support for Reparations and Landback by Race
 ```{r}
@@ -385,7 +381,7 @@ figure4 <- df_model0 %>%
 
 figure4
 ```
-##Figure 5. Persuasion Effects of Garrison's Videos by Race
+## Figure 5. Persuasion Effects of Garrison's Videos by Race
 ### Movement Support Among Black & Indigenous Audiences 
 ```{r}
 #| label: figure5
@@ -440,7 +436,7 @@ figure5 <- df_model1 %>%
 
 figure5
 ```
-##Figure 6. Persuasion Effects of Garrison's Videos by Race and Political Party
+## Figure 6. Persuasion Effects of Garrison's Videos by Race and Political Party
 ### Movement Support Among Black & Indigenous Audiences across  
 ```{r}
 #| label: figure6
