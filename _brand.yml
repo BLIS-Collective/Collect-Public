@@ -1,0 +1,60 @@
+meta: 
+  name: 
+    full: BLIS Collective
+    short: BLIS
+  link: 
+    home: https://www.bliscollective.org/
+    github: https://github.com/BLIS-Collective
+    linkedin: https://www.linkedin.com/company/blis-collective
+    instagram: https://www.instagram.com/blis_collective/
+  description: | 
+    BLIS stands for Black Liberation-Indigenous Sovereignty. We’re a cross-movement Solidarity & Action Hub
+    braiding narratives and growing movements to win policy and shift culture. We bring together 45 member 
+    organizations and individuals to strengthen solidarity across movements, shift culture, and win 
+    transformative policy.
+  founded: 2023
+
+logo:
+  images: 
+    icon: 
+      path: brand/logos/_02_BLIS_Icon_Digital_FullColor.png
+      alt: "BLIS logo, a patterned square"
+    header: 
+      path: brand/logos/_06_BLIS_Icon_Horizontal_Digital_FullColor.png
+      alt: "Horizontal BLIS logo with name to the right"
+    header-white:
+      path: brand/logos/_08_BLIS_Logo_Cream.png
+      alt: "Horizantal BLIS logo with name to the right in light colors"
+    full: 
+      path: brand/logos/_01_BLIS_Logo_Digital_FullColor.png
+      alt: "BLIS logo with company name underneath in full color"
+  small: icon
+  medium: 
+    light: full
+    dark: brand/logos/_05_BLIS_Icon_Digital_W.png
+  large: header
+
+color:
+  palette: 
+    sunset: "#F94B01"
+    cornsilk: "#F4C900"
+    jade: "#1DA595"
+    petal: "#F70366"
+    chestnut: "#4C230A"
+    sandstone: "#F8F2DC"
+  foreground: chestnut
+  background: sandstone
+  primary: jade
+  secondary: petal
+  tertiary: sunset
+  success: jade
+  info: jade
+  warning: petal
+  danger: sunset
+  light: cornsilk
+  dark: sunset
+
+typography:
+  base: Jost
+  headings: Jost
+  monospace: Fira Code

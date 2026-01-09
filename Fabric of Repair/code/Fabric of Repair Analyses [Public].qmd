@@ -1,0 +1,629 @@
+---
+title: "Fabric of Repair Analyses [Public]"
+author: 
+  - name: "Justin W. Morgan"
+    affiliation:
+      name: BLIS Collective
+      url:  https://www.bliscollective.org/
+  - name: "Christina Pao"
+date: "8 January 2026"
+editor: visual
+---
+
+```{r}
+#| label: setup code
+#| include: false
+
+# Importing Packages
+library(tidyverse)
+library(magrittr)
+library(gtsummary)
+library(gt)
+#library(ggeffects)
+#library(broom)
+#library(dotwhisker)
+#library(forcats)
+#library(stargazer)
+#library(showtext)
+#library(kableExtra)
+
+#BLIS Color Palette
+sunset <- "#F94B01"
+cornsilk <- "#F4C900"
+jade <- "#1DA595"
+petal <- "#F70366"
+chestnut <- "#4C230A"
+sandstone <- "#F8F2DC" 
+
+# Importing Data
+df <- read_csv("Fabric of Repair/data/replication_swayable_2025.csv")
+```
+
+## Creating the Analytic Variables
+
+```{r}
+#| label: dataset construction
+#| message: False
+
+df_analysis <- df %>%
+  mutate(Race = race,
+         `College Educated` = education_binary,
+         Income = factor(case_when(What.is.the.total.annual.income.of.your.household.before.taxes. == "100-150-k" ~ "$100-150K",
+                                   What.is.the.total.annual.income.of.your.household.before.taxes. == "under-20-k" ~ "Under $20K",
+                                   What.is.the.total.annual.income.of.your.household.before.taxes. == "20-40-k" |
+                                     What.is.the.total.annual.income.of.your.household.before.taxes. == "40-60k" ~ "$20-60K",
+                                   What.is.the.total.annual.income.of.your.household.before.taxes. == "60-80-k" |
+                                     What.is.the.total.annual.income.of.your.household.before.taxes. == "80-100-k" ~ "$60-100K",
+                                   What.is.the.total.annual.income.of.your.household.before.taxes. == "150-200-k" |
+                                     What.is.the.total.annual.income.of.your.household.before.taxes. == "over-200-k" ~ "Over $150K",
+                                   TRUE ~ NA), 
+                         levels = c("Under $20K", "$20-60K", "$60-100K", "$100-150K", "Over $150K")),
+         `Party Affiliation` = case_when(Party == "democrat" ~ "Democrat",
+                                         Party == "republican" ~ "Republican",
+                                         TRUE ~ "Independent or Something Else"),
+         Residence = factor(case_when(Area == "city" ~ "City",
+                                      Area == "in-a-rural-area" ~ "Rural",
+                                      Area == "small-town-next-to-native-community-e-g-reservation" |
+                                        Area == "small-town-not-next-to-native-community-e-g-reservation" ~ "Small Town",
+                                      TRUE ~ "Another location"),
+                            levels = c("City", "Small Town", "Rural", "Another Location")),
+         Region = case_when(Region..Midwest == T ~ "Midwest",
+                            Region..Northeast == T ~ "Northeast",
+                            Region..South == T ~ "South",
+                            Region..West == T ~ "West"),
+         Religion = factor(case_when(What.is.your.present.religion..if.any. == "atheist" ~ "Atheist",
+                                             What.is.your.present.religion..if.any. == "catholic" ~ "Catholic",
+                                             What.is.your.present.religion..if.any. == "evangelical-protestant" ~ "Evangelical Protestant",
+                                             What.is.your.present.religion..if.any. == "mormon" ~ "Mormon",
+                                             What.is.your.present.religion..if.any. == "muslim" ~ "Muslim",
+                                             What.is.your.present.religion..if.any. == "other-protestant" ~ "Other Protestant",
+                                             What.is.your.present.religion..if.any. == "nothing-in-particular" ~ "Not Religious",
+                                             TRUE ~ "Other Religion"),
+                           levels = c("Not Religious", "Atheist", "Catholic", "Evangelical Protestant", "Other Protestant", "Muslim",  "Other Religion")),
+         `Religious Affiliation` = ifelse(Religion == "Not Religious", "Not Religious", "Religious"),
+         Enrollment = enrollment_status,
+         `Hawaiian Homes Beneficiary` = case_when(Are.you.a.beneficiary.of.the.Hawaiian.Homes.Commission.Act.of.1920..as.amended. == "yes" ~ "Yes",
+                                                  Are.you.a.beneficiary.of.the.Hawaiian.Homes.Commission.Act.of.1920..as.amended. == "no" ~ "No",
+                                                  Are.you.a.beneficiary.of.the.Hawaiian.Homes.Commission.Act.of.1920..as.amended. == "unsure" ~ "Unsure",
+                                                  TRUE ~ NA),
+         Residence = case_when(Area == "alaska-native-village" ~ "Alaska Native Village",
+                               Area == "city" ~ "City",
+                               Area == "hawaiian-homestead-through-department-of-hawaiian-home-lands" ~ "Hawaiian Homestead",
+                               Area == "in-a-rural-area" ~ "Rural",
+                               Area == "otsa-oklahoma-tribal-statistical-area" ~ "Oklahoma Tribal Statistical Area",
+                               Area == "pueblo" ~ "Pueblo",
+                               Area == "rancheria" ~ "Rancheria",
+                               Area == "small-town-next-to-native-community-e-g-reservation" ~ "Small Town By Native Community",
+                               Area == "small-town-not-next-to-native-community-e-g-reservation" ~ "Small Town Not By Native Community",
+                               Area == "tribal-reservation" ~ "Tribal Reservation"),
+         `Provided Tribal Affiliation` = tribal.affiliation.reported,
+         Identity = case_when(Ethnicity..Alaska.Native == T & Ethnicity..American.Indian.Native.American == F & Ethnicity..First.Nations..Inuit.or.Metis == F & Ethnicity..Native.Hawaiian.Kanaka.Maoli == F & Ethnicity..Another.Native..ethnic..or.racial.group.not.identified.here == F ~ "Alaska Native",
+                              Ethnicity..American.Indian.Native.American == T & Ethnicity..Alaska.Native == F & Ethnicity..First.Nations..Inuit.or.Metis == F & Ethnicity..Native.Hawaiian.Kanaka.Maoli == F & Ethnicity..Another.Native..ethnic..or.racial.group.not.identified.here == F  ~ "American Indian, Native American",
+                              Ethnicity..First.Nations..Inuit.or.Metis == T & Ethnicity..American.Indian.Native.American == F & Ethnicity..Alaska.Native == F & Ethnicity..Native.Hawaiian.Kanaka.Maoli == F & Ethnicity..Another.Native..ethnic..or.racial.group.not.identified.here == F ~ "First Nations, Inuit, Metis",
+                              Ethnicity..Native.Hawaiian.Kanaka.Maoli == T & Ethnicity..First.Nations..Inuit.or.Metis == F & Ethnicity..American.Indian.Native.American == F & Ethnicity..Alaska.Native == F & Ethnicity..Another.Native..ethnic..or.racial.group.not.identified.here == F ~ "Native Hawaiian, Kanaka Maoli",
+                              TRUE ~ "Other or Multiple Indigenous Identities")) %>%
+  select(Age, Gender, Race, `College Educated`, Income, `Party Affiliation`, Residence, Region, `Religious Affiliation`, 
+         Identity, Enrollment, Residence, `Provided Tribal Affiliation`, `Hawaiian Homes Beneficiary`, summarized_party, 
+         rep_baseline_categorical, landback_baseline_categorical, age_groups, Land.Back.Support, treatment, 
+         video_perception, Reparations.Support, Feasibility.Land.Back, Feasibility.Reparations)
+
+df_analysis
+```
+
+# Tables
+
+## Table 1. Demographic Distribution of Study Population
+```{r}
+#| label: table1
+#| class: output
+#| cache: true
+
+# Creating the descriptives table using gt_summary package
+table1 <- df_analysis %>% 
+  select(Race, Age, Gender, `College Educated`, Income, `Party Affiliation`, Residence, Region, `Religious Affiliation`) %>% 
+  tbl_summary(
+    by =  Race,
+    percent = "column",
+    statistic = all_continuous() ~ "{mean} ({sd})",
+    digits = list(all_continuous() ~ 1,
+                  all_categorical() ~ c(0, 1)),
+    missing = "no") %>% 
+  add_overall(last = TRUE) %>% 
+  add_p(test = list(everything() ~ "chisq.test",
+                      all_continuous() ~ "t.test",
+                      Residence ~ "fisher.test"),
+          test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE, B = 2000),
+          pvalue_fun = ~style_pvalue(., digits = 3)) %>%
+  as_gt() %>% 
+  opt_table_font(font = "Jost") 
+
+table1
+```
+## Table 2. Demographic Distribution of Indigenous Study Population
+```{r}
+#| label: table2
+#| class: output
+#| cache: true
+
+# Creating the descriptives table using gt_summary package
+table2 <- df_analysis %>% 
+  filter(Race == "Indigenous") %>%
+  select(Identity, Enrollment, Residence, `Provided Tribal Affiliation`, `Hawaiian Homes Beneficiary`) %>% 
+  tbl_summary(
+    by =  Identity,
+    percent = "column",
+    digits = all_categorical() ~ c(0, 1),
+    missing = "no") %>% 
+  add_overall(last = TRUE) %>% 
+  add_p(test = everything() ~ "fisher.test",
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE, B = 2000),
+        pvalue_fun = ~style_pvalue(., digits = 3)) %>%
+  as_gt() %>% 
+  opt_table_font(font = "Jost") 
+
+table2
+```
+## Table 3. Support for Reparations and Land Back Movements by Race and Political Affiliation
+### Support for Land Back
+```{r}
+#| label: table3a
+df_analysis %>%
+  select(Race, summarized_party, landback_baseline_categorical) %>% 
+  mutate(`Identity Group` = Race,
+         `Political Affiliation` = summarized_party) %>% 
+  group_by(`Identity Group`, `Political Affiliation`) %>% 
+  count(landback_baseline_categorical) %>%
+  mutate(`Sample Size` = n,
+         `Support (%)` = round(n/sum(n) * 100, 1)) %>% 
+  filter(landback_baseline_categorical == "Support") %>% 
+  select(`Identity Group`,`Political Affiliation`,`Sample Size`,`Support (%)`)
+```
+### Support for Reparations
+```{r}
+#| label: table3b
+df_analysis %>%
+  select(Race, summarized_party, rep_baseline_categorical) %>% 
+  mutate(`Identity Group` = Race,
+         `Political Affiliation` = summarized_party) %>% 
+  group_by(`Identity Group`, `Political Affiliation`) %>% 
+  count(rep_baseline_categorical) %>%
+  mutate(`Sample Size` = n,
+         `Support (%)` = round(n/sum(n) * 100, 1)) %>% 
+  filter(rep_baseline_categorical == "Support") %>% 
+  select(`Identity Group`,`Political Affiliation`,`Sample Size`,`Support (%)`) 
+```
+  
+# Figures
+## Figure 1. Baseline Support for Reparations and Landback by Race
+```{r}
+#| label: figure1
+#| fig-column: screen-inset-right
+#| cache: true
+
+# Create summary dataframe for Reparations baseline
+df_rep_support <- df_analysis %>% 
+  group_by(Race) %>% 
+  count(rep_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = rep_baseline_categorical) %>% 
+  add_column(Movement = "Reparations")
+
+# Create summary dataframe for Land Back baseline
+df_lb_support <- df_analysis %>% 
+  group_by(Race) %>% 
+  count(landback_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = landback_baseline_categorical) %>% 
+  add_column(Movement = "Land Back")
+
+# Merge summary dataframes for Reparations and Land Back
+df_support <- bind_rows(df_rep_support, df_lb_support)
+
+# Plot Figure 1
+figure1 <- df_support %>% 
+  mutate(Race = case_when(Race == "Black" ~ "Black Respondents",
+                          Race == "Indigenous" ~ "Native Respondents"))  %>%
+  ggplot(aes(x = baseline_support, y = Percentage, fill = Movement)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Baseline Support",
+       y = "Percentage",
+       fill = "Movement") +  
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_manual(values = c("#1DA595", "#F94B01")) + 
+  facet_wrap(~Race) + 
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.position = "bottom",
+        legend.title.position = "top",
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        plot.title = element_text(hjust = 0.5)) 
+
+figure1
+```
+## Figure 2. Baseline Support for Reparations and Landback by Race and Political Party
+```{r}
+#| label: figure2
+#| fig-column: screen-inset-right
+#| cache: true
+
+# Creating a summary dataframe of baseline Reparations support by political party
+df_rep_support_pol <- df_analysis %>% 
+  group_by(Race, summarized_party) %>% 
+  count(rep_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = rep_baseline_categorical) %>% 
+  add_column(Movement = "Reparations")
+
+# Creating a summary dataframe of baseline Land Back support by political party
+df_lb_support_pol <- df_analysis %>% 
+  group_by(Race, summarized_party) %>% 
+  count(landback_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = landback_baseline_categorical) %>% 
+  add_column(Movement = "Land Back")
+
+# Combining both Reparations and Land Back dataframes
+df_support_pol <- bind_rows(df_rep_support_pol, df_lb_support_pol)
+
+# Plotting Figure 2
+figure2 <- df_support_pol %>% 
+  ggplot(aes(x = summarized_party, y = Percentage, fill = baseline_support)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Partisanship",
+       y = "Percentage",
+       fill = "Support") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  facet_grid(vars(Movement), vars(Race)) + 
+  theme(axis.text.x = element_text(angle = 0)) +
+  scale_fill_manual(values = c('#F4C900', '#F94B01', '#1DA595')) + 
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.position = "bottom",
+        legend.title.position = "top",
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        plot.title = element_text(hjust = 0.5)) 
+
+figure2
+```
+## Figure 3. Baseline Support for Reparations and Landback by Race and Age
+```{r}
+#| label: figure3
+#| fig-column: screen-inset-right
+#| cache: true
+
+# Creating a summary dataframe of baseline Reparations support by age groups
+df_rep_support_age <- df_analysis %>% 
+  group_by(Race, age_groups) %>% 
+  count(rep_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = rep_baseline_categorical) %>% 
+  add_column(Movement = "Reparations")
+
+# Creating a summary dataframe of baseline Land Back support by age
+df_lb_support_age <- df_analysis %>% 
+  group_by(Race, age_groups) %>% 
+  count(landback_baseline_categorical) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>% 
+  rename(baseline_support = landback_baseline_categorical) %>% 
+  add_column(Movement = "Land Back")
+
+# Combining both Reparations and Land Back dataframes
+df_support_age <- bind_rows(df_rep_support_age, df_lb_support_age)
+
+# Plotting Figure 3
+figure3 <- df_support_age %>% 
+  ggplot(aes(x = age_groups, y = Percentage, fill = baseline_support)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Age",
+       y = "Percentage",
+       fill = "Support") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  facet_grid(vars(Movement), vars(Race)) + 
+  theme(axis.text.x = element_text(angle = 0)) +
+  scale_fill_manual(values = c('#F4C900', '#F94B01', '#1DA595')) + 
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.position = "bottom",
+        legend.title.position = "top",
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        plot.title = element_text(hjust = 0.5)) 
+
+figure3
+```
+## Figure 4. Persuasion Effects of Garrison's Videos
+### Referenced Against Control Video
+```{r}
+#| label: figure4
+#| fig-column: screen-inset-right
+#| cache: true
+
+# Regression model for Land Back support
+df_model0_lb <- tidy(lm(Land.Back.Support ~ treatment + video_perception, df)) %>% 
+  mutate(model = "Land Back Support")
+
+# Regression model for Reparations support
+df_model0_rep <- tidy(lm(Reparations.Support ~ treatment + video_perception, df)) %>% 
+  mutate(model = "Reparations Support")
+
+# Binding regression coefficient dataframes together
+df_model0 <- bind_rows(df_model0_lb, df_model0_rep) %>%
+  mutate(conf.low = estimate - 1.96 * std.error,
+         conf.high = estimate + 1.96 * std.error) %>% 
+  relabel_predictors(c("treatmentReparations" = "Reparations Video",
+                       "treatmentLand Back" = "Land Back Video",
+                       "treatmentBoth" = "Both Video")) %>%
+  filter(!term %in% c("video_perception","(Intercept)"))
+
+figure4 <- df_model0 %>% 
+  ggplot(aes(x = estimate, y = term, colour = model)) +
+  geom_vline(xintercept = 0, color = "#4C230A", linetype = "longdash", alpha = 0.5) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
+                  position = position_dodge(width = 0.5),
+                  size = 0.25,
+                  linewidth = 0.5) +
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.title.position = "top",
+        legend.title = element_text(hjust = 0.5),
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        plot.title.position = "plot",
+        plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 1)) +
+  labs(x = " \nCoefficient Estimate with 95% CIs \n",
+       y = "",
+       caption = "Note: Model includes a control for respondents' perceived production quality.",
+       colour = "Model") +
+  scale_colour_manual(values = c("#1DA595", "#F94B01"))
+
+figure4
+```
+##Figure 5. Persuasion Effects of Garrison's Videos by Race
+### Movement Support Among Black & Indigenous Audiences 
+```{r}
+#| label: figure5
+#| fig-column: screen-inset-right
+#| cache: true
+#| message: false
+#| warning: false
+
+
+# Regression model stratified by race for Land Back support
+df_model1_lb <-  lm(Land.Back.Support ~ treatment*race + video_perception, df) %>% 
+  ggpredict(terms = c("treatment", "race")) %>% 
+  tibble() %>% 
+  mutate(outcome = "Land Back")
+
+df_model1_rep <- lm(Reparations.Support ~ treatment*race + video_perception, df) %>% 
+  ggpredict(terms = c("treatment", "race")) %>% 
+  tibble() %>% 
+  mutate(outcome = "Reparations")
+
+# Merging predictions
+df_model1 <- rbind(df_model1_lb, df_model1_rep)
+
+# Plotting Figure 5
+figure5 <- df_model1 %>%
+  ggplot(aes(x = x, y = predicted, fill = outcome)) +
+  geom_col(position = "dodge") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), 
+                position = position_dodge(.9),
+                width=.2) +
+  labs(x = "Video", 
+       y = "Average Support", 
+       fill = "Movement", 
+       caption = "Note: Model includes a control for respondents' perceived production quality.") +
+  facet_wrap(~ group) +
+  scale_fill_manual(values = c("#1DA595", "#F94B01")) +
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.title.position = "top",
+        legend.title = element_text(hjust = 0.5),
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        panel.grid.major.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        panel.grid.minor.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        plot.title.position = "plot",
+        plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 1),
+        strip.background = element_rect(fill = "#F8F2DC")) +
+  scale_y_continuous(limits = c(0, 10), breaks = c(0, 2.5, 5, 7.5, 10), 
+                     labels = c("0, Definitely No", "2.5", "5", "7.5", "10, Definitely Yes"))
+
+figure5
+```
+##Figure 6. Persuasion Effects of Garrison's Videos by Race and Political Party
+### Movement Support Among Black & Indigenous Audiences across  
+```{r}
+#| label: figure6
+#| fig-column: screen-inset-right
+#| cache: true
+#| message: false
+#| warning: false
+
+# Regression model stratified by race and party, Land Back support
+df_model2_lb <- lm(Land.Back.Support ~ race*summarized_party*treatment + video_perception, data = df) %>% 
+  ggpredict(terms = c("treatment", "race", "summarized_party")) %>%
+  tibble() %>% 
+  mutate(outcome = "Land Back")
+
+# Regression model stratified by race and party, Reparations support
+df_model2_rep <- lm(Reparations.Support ~ race*summarized_party*treatment + video_perception, data = df) %>% 
+  ggpredict(terms = c("treatment", "race", "summarized_party")) %>% 
+  tibble() %>% 
+  mutate(outcome = "Reparations")
+
+# Merging predictions
+df_model2 <- rbind(df_model2_lb, df_model2_rep) %>% 
+  mutate(x = factor(x, levels = c("Control", "Reparations", "Land Back", "Both")))
+
+# Plotting Figure 6
+figure6 <- df_model2 %>%
+  ggplot(aes(x = x, y = predicted, fill = group)) + 
+  geom_col(position = "dodge") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), 
+                position = position_dodge(.9), 
+                width=.2) +
+  labs(x = "Video", 
+       y = "Average Support", 
+       fill = "Race", 
+       caption = "Note: Model includes a control for respondents' perceived production quality.") +
+  facet_grid(vars(outcome),vars(facet)) +
+  scale_fill_manual(values = c('Black' = '#4C230A', 'Indigenous' = '#F4C900')) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) + 
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.title.position = "top",
+        legend.title = element_text(hjust = 0.5),
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        panel.grid.major.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        panel.grid.minor.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        plot.title.position = "plot",
+        plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 1),
+        strip.background = element_rect(fill = "#F8F2DC")) +
+  scale_y_continuous(limits = c(0, 10), breaks = c(0, 2.5, 5, 7.5, 10), 
+                     labels = c("0, Definitely No", "2.5", "5", "7.5", "10, Definitely Yes"))
+
+figure6
+```
+## Figure 7. Hope Gap for Identity-relevant Movement Among Support
+```{r}
+########################### Figure 7: Title of Figure ##########################
+
+# Calculating movement support
+df_figure7 <- df %>%
+  mutate(support_reparations = ifelse(rep_baseline_categorical == "Support", 1, 0),
+         support_landback = ifelse(landback_baseline_categorical == "Support", 1, 0),
+         feasibility_landback = ifelse(Feasibility.Land.Back == "Yes", 1, 0),
+         feasibility_reparations = ifelse(Feasibility.Reparations == "Yes", 1, 0)) %>% 
+  filter((race == "Indigenous" & support_landback == 1) | (race == "Black" & support_reparations == 1)) %>%
+  mutate(hope = case_when(race == "Indigenous" ~ feasibility_landback,
+                          race == "Black" ~ feasibility_reparations)) %>%
+  group_by(race) %>%
+  count(hope) %>% 
+  mutate(Percentage = n/sum(n) * 100) %>%
+  mutate(hope = ifelse(hope == 1, "Feasible", "Hope Gap")) %>%
+  mutate(movement = "Own Movement",
+         hope = factor(hope, levels = c("Hope Gap", "Feasible"))) 
+  
+# Plotting Figure 7
+figure7 <- df_figure7 %>% 
+  ggplot(aes(x = race, y = Percentage, fill = hope)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Identity",
+       y = "Percentage",
+       fill = "Feasibility") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_manual(values = c('#F35018', '#1DA595')) + 
+  theme(text = element_text(family = "Jost"),
+        plot.background = element_rect(fill = "#F8F2DC"),
+        legend.background	= element_rect(fill = "#F8F2DC"),
+        legend.title.position = "top",
+        legend.title = element_text(hjust = 0.5),
+        panel.background = element_rect(fill = "#F8F2DC"),
+        panel.grid = element_line(colour = "#F8F2DC"),
+        panel.grid.major.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        panel.grid.minor.y = element_line(colour = "#4C230A", linetype = "solid", linewidth = 0.1),
+        plot.title.position = "plot",
+        plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 1),
+        strip.background = element_rect(fill = "#F8F2DC"))
+
+figure7
+```
+
+# Code for Study Analysis
+In this section we are including code to identify values for statistics produced in our study analysis
+
+Note for Justin - need to update code to View predictions
+ 
+```{r}
+#| code-fold: false
+#| eval: false
+
+# Viewing Baseline support
+df_support
+
+### Calculating predictions by race and video treatment
+
+# Movement regressions
+model_landback_race <- lm(Land.Back.Support ~ treatment*race + video_perception, df)
+model_reparations_race <- lm(Reparations.Support ~ treatment*race + video_perception, df)
+
+# Movement predictions
+predictions_landback_race <- tibble(ggpredict(model_landback_race, terms = c("treatment", "race"))) %>%
+  mutate(outcome = "Land Back")
+predictions_reparations_race <- tibble(ggpredict(model_reparations_race, terms = c("treatment", "race"))) %>%
+  mutate(outcome = "Reparations")
+
+# Merged predictions
+predictions_race <- rbind(predictions_landback_race, predictions_reparations_race)
+
+# Black support for reparations with braided video
+(predictions_race$predicted[predictions_race$x == "Both" & predictions_race$group == "Black" & predictions_race$outcome == "Reparations"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Reparations"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Reparations"]
+
+# Black support for landback with braided video
+(predictions_race$predicted[predictions_race$x == "Both" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"]
+
+# Native support for reparations with braided video
+(predictions_race$predicted[predictions_race$x == "Both" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"]
+
+# Native support for landback with braided video
+(predictions_race$predicted[predictions_race$x == "Both" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Land Back"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Land Back"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Land Back"]
+
+# Black support for landback increase with reparations video
+(predictions_race$predicted[predictions_race$x == "Reparations" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Black" & predictions_race$outcome == "Land Back"]
+
+# Native support for reparations increase with landback video
+(predictions_race$predicted[predictions_race$x == "Land Back" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"] - predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"]) / predictions_race$predicted[predictions_race$x == "Control" & predictions_race$group == "Indigenous" & predictions_race$outcome == "Reparations"]
+
+### Calculating predictions by race, partisanship, and video treatment
+
+# Movement regressions
+model_landback_raceparty <- lm(Land.Back.Support ~ race*summarized_party*treatment + video_perception, data = df) 
+model_reparations_raceparty <- lm(Reparations.Support ~ race*summarized_party*treatment + video_perception, data = df)
+
+# Movement predictions
+predictions_landback_raceparty <- tibble(ggpredict(model_landback_raceparty, terms = c("treatment", "race", "summarized_party"))) %>%
+  mutate(outcome = "Land Back")
+predictions_reparations_raceparty <- tibble(ggpredict(model_reparations_raceparty, terms = c("treatment", "race", "summarized_party"))) %>%
+  mutate(outcome = "Reparations")
+
+# Merged predictions
+predictions_raceparty <- rbind(predictions_landback_raceparty, predictions_reparations_raceparty)
+
+# Native Democrats' support for landback with braided video
+(predictions_raceparty$predicted[predictions_raceparty$x == "Both" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]
+
+# Native Democrats' support for reparations increase with landback video
+(predictions_raceparty$predicted[predictions_raceparty$x == "Both" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]
+
+# Native Republicans' support for reparations increase with landback video
+(predictions_raceparty$predicted[predictions_raceparty$x == "Land Back" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"]
+
+# Black Democrats' support for Land Back increase with Reparations video
+(predictions_raceparty$predicted[predictions_raceparty$x == "Reparations" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]
+
+# Black Democrats' support for Reparations increase with Braided video
+(predictions_raceparty$predicted[predictions_raceparty$x == "Both" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]
+
+# Black Democrats' support for Land Back with Braided
+(predictions_raceparty$predicted[predictions_raceparty$x == "Both" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Black" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Land Back"]
+
+# Indigenous Democrats' support for Reparations with Braided
+(predictions_raceparty$predicted[predictions_raceparty$x == "Both" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Democrat" & predictions_raceparty$outcome == "Reparations"]
+
+# Indigenous Republicans' support for Reparations with Reparations
+(predictions_raceparty$predicted[predictions_raceparty$x == "Reparations" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"] - predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"]) / predictions_raceparty$predicted[predictions_raceparty$x == "Control" & predictions_raceparty$group == "Indigenous" & predictions_raceparty$facet == "Republican" & predictions_raceparty$outcome == "Reparations"]
+```

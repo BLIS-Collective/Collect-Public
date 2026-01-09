@@ -1,0 +1,91 @@
+/* Hide navbar logo, search feature and top navbar since we have banner */
+.navbar-logo {
+  display: none !important;
+}
+
+#quarto-search,
+#quarto-search-container,
+.aa-Autocomplete,
+#quarto-header,
+.quarto-navbar,
+nav.navbar {
+  display: none !important;
+}
+
+/* Scrollable output */
+.output {
+max-height: 600px;
+  overflow-y: scroll;
+}
+
+/* Remove ALL margins and padding from everything */
+* {
+  box-sizing: border-box !important;
+}
+
+html {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Remove constraints from all Quarto containers */
+#quarto-content,
+.quarto-container,
+body > .page-columns,
+.page-columns,
+.column-page,
+main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  max-width: none !important;
+}
+
+.quarto-title-block {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Make banner full width but scrollable - height 175px, logo on left */
+header.banner {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 40px 20px !important;  /* Added horizontal padding */
+  height: 175px !important;
+  background: #4C230A !important;
+  border-bottom: 4px solid #F94B01 !important;
+  border-top: 4px solid #F94B01 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  text-align: left !important;  /* Changed from center to left */
+  z-index: 75 !important;  /* Lower than TOC */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;  /* Changed from center to flex-start */
+}
+
+/* Push content below banner */
+#quarto-content {
+  padding-top: 200px !important;
+}
+
+/* Keep TOC in original position but with banner colors */
+.sidebar-navigation,
+#quarto-margin-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 200 !important;
+  margin-top: 0 !important;
+}

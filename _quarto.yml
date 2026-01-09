@@ -1,0 +1,27 @@
+title: BLIS Collective Research
+
+brand: _brand.yml
+    
+project:
+  type: website
+  execute-dir: project
+  output-dir: output
+  preview:
+    port: 4200
+    browser: true 
+  
+website:
+  navbar:
+    logo: brand/logos/_06_BLIS_Icon_Horizontal_Digital_FullColor.png
+    background: "#F8F2DC"
+    foreground: "#4C230A"
+
+format:
+  html:
+    toc: true
+    page-layout: full
+    code-fold: true
+    embed-resources: true
+    css: brand/_brand.css
+    include-before-body: brand/banner.html
+    df-print: paged
