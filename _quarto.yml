@@ -6,6 +6,8 @@ project:
   type: website
   execute-dir: project
   output-dir: output
+  resources: 
+    - "RWJF/experiment/code/"
   preview:
     port: 4200
     browser: true 
@@ -16,9 +18,21 @@ website:
     background: "#F8F2DC"
     foreground: "#4C230A"
 
+  sidebar:
+    style: floating
+    background: "#F8F2DC"
+    foreground: "#4C230A"
+    collapse-level: 1
+    contents: auto    
+
 format:
   html:
+    grid:
+      sidebar-width: 300px
+      body-width: 1600px
+      margin-width: 0px
     toc: true
+    toc-location: left
     page-layout: full
     code-fold: true
     embed-resources: true

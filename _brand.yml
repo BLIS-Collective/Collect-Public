@@ -58,3 +58,6 @@ typography:
   base: Jost
   headings: Jost
   monospace: Fira Code
+  monospace-inline:
+    background-color: chestnut
+    color: sandstone
